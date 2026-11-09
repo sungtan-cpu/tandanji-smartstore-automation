@@ -1,0 +1,7 @@
+{
+  "time": "08:05",
+  "scheduledMode": "preview",
+  "startPolicy": "current-hour",
+  "previewApproved": false,
+  "chatWebhookEnv": "TANDANJI_CHAT_WEBHOOK"
+}

@@ -1,0 +1,1 @@
+{"name":"tandanji-smartstore","private":true,"type":"module","scripts":{"test":"node --test test.mjs","preview":"node run.mjs preview","apply":"node run.mjs apply","schedule":"node run.mjs schedule"},"dependencies":{"playwright":"^1.56.0"}}

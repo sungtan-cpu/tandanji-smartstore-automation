@@ -1,0 +1,17 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {delivery,dateText,round,plan,parse,assertNoEarlierGaps,eligibleWindow,planWindow} from './core.mjs';
+import {dateOrder} from './home-sort.mjs';
+test('실행일 제외 네번째 월목, 월 회차 초기화',()=>{const d=delivery(new Date('2026-10-19T09:00:00+09:00'));assert.equal(dateText(d),'2026-11-02');assert.equal(round(d),1);});
+test('한국시간 자정과 연말',()=>{assert.equal(dateText(delivery(new Date('2026-10-18T15:00:00Z'))),'2026-11-02');assert.equal(dateText(delivery(new Date('2026-12-21T09:00:00+09:00'))),'2027-01-04');});
+const now=new Date('2026-10-19T10:30:00+09:00');
+const ps=[{id:'1',name:'09월28일(월) [고단백도시락] 탄단지박스 9월 7회차',status:'판매중지'},{id:'2',name:'10월15일(목) [고단백도시락] 탄단지박스 10월 4회차',status:'판매중지'},{id:'3',name:'09월21일(월) [웜프 샐러드] 탄단지박스 9월 6회차',status:'판매중지'}];
+test('등록순 무관 최신 배송일, 판매중 제외',()=>{const result=plan([...ps,{id:'4',name:'10월19일(월) [고단백도시락] 탄단지박스 10월 5회차',status:'판매중'}],now);assert.equal(result[0].id,'2');assert.equal(result[0].end,'2026-10-30T23:59');assert.equal(result[1].newName,'11월02일(월) [웜프 샐러드] 탄단지박스 11월 1회차');});
+test('한 종류 완료 후 재실행',()=>{const result=plan([...ps,{id:'5',name:'11월02일(월) [고단백도시락] 탄단지박스 11월 1회차',status:'판매중'}],now);assert.equal(result[0].skip,true);assert.equal(result[1].id,'3');});
+test('잘못된 날짜와 대상 누락 차단',()=>{assert.throws(()=>parse('10월32일(목) [고단백도시락] 탄단지박스 10월 9회차',2026));assert.throws(()=>plan([],now));});
+test('10월26일 네번째 배송일과 판매종료 대상',()=>{const n=new Date('2026-10-26T08:00:00+09:00');const p=plan(ps.map(x=>({...x,status:'판매종료'})),n);assert.equal(p[0].delivery,'2026-11-09');assert.match(p[1].newName,/11월 3회차$/);assert.equal(p[0].end,'2026-11-06T23:59');});
+test('홈 정렬: 월 경계, 공백, 동일 날짜 안정 순서',()=>{const names=['[1] 11월09일(월) [웜프 샐러드] 탄단지박스 11월 3회차','[2] 10월 29일(목) [웜프 샐러드] 탄단지박스 10월 8회차','[3] 11월02일(월) [웜프 샐러드] 탄단지박스 11월 1회차','[4] 11월02일(월) [웜프 샐러드] 탄단지박스 11월 1회차'];assert.deepEqual(dateOrder(names,2026),[names[1],names[2],names[3],names[0]]);assert.throws(()=>dateOrder(['날짜 없는 상품'],2026));});
+test('11월5일 누락 시 11월9일 저장 차단 및 지정일 보완',()=>{const n=new Date('2026-10-26T08:00:00+09:00');const existing=['고단백도시락','웜프 샐러드'].flatMap(k=>['10월29일(목)','11월02일(월)'].map(d=>({name:`${d} [${k}] 탄단지박스`})));assert.throws(()=>assertNoEarlierGaps(existing,'2026-11-09',n),/2026-11-05/);assert.doesNotThrow(()=>assertNoEarlierGaps(existing,'2026-11-05',n));const p=plan(ps,n,'2026-11-05');assert.equal(p[0].newName,'11월05일(목) [고단백도시락] 탄단지박스 11월 2회차');assert.equal(p[0].end,'2026-11-02T23:59');});
+const cal={coverageStart:'2026-10-01',coverageEnd:'2026-12-31',checkedOn:'2026-10-26',maxAgeDays:7,holidays:['2026-10-05']};
+test('가까운 공휴일 제외 월목 4개 배송일 유지',()=>{assert.deepEqual(eligibleWindow(new Date('2026-10-26T10:00:00+09:00'),cal),['2026-10-29','2026-11-02','2026-11-05','2026-11-09']);const holidayCal={...cal,holidays:['2026-10-29']};assert.deepEqual(eligibleWindow(new Date('2026-10-26T10:00:00+09:00'),holidayCal),['2026-11-02','2026-11-05','2026-11-09','2026-11-12']);assert.throws(()=>eligibleWindow(new Date('2026-11-03T10:00:00+09:00'),cal),/오래/);});
+test('8개가 이미 있으면 전부 이름·기간 건너뜀',()=>{const n=new Date('2026-10-26T10:00:00+09:00');const products=['고단백도시락','웜프 샐러드'].flatMap((k,ki)=>['10월29일(목)','11월02일(월)','11월05일(목)','11월09일(월)'].map((d,i)=>({id:`${ki}-${i}`,name:`${d} [${k}] 탄단지박스 ${i===0?'10월 8회차':`11월 ${i}회차`}`,status:'판매중'})));const p=planWindow(products,n,cal);assert.equal(p.length,8);assert.ok(p.every(x=>x.skip));});

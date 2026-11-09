@@ -1,0 +1,9 @@
+{
+  "timezone": "Asia/Seoul",
+  "days": ["MO", "TH"],
+  "time": "08:05",
+  "enabledOnNewComputer": false,
+  "sourceAutomationId": "08-20",
+  "sourceStatusAtExport": "PAUSED",
+  "note": "새 컴퓨터에서 경로와 로그인 확인 후 Codex 예약을 별도로 등록한다. 이전 컴퓨터의 예약과 동시 실행하지 않는다."
+}

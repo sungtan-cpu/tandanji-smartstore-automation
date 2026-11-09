@@ -1,0 +1,14 @@
+**/node_modules/
+**/profile/
+**/run.lock
+**/schedule-state.json
+local-settings.json
+.env
+.env.*
+!.env.example
+**/storage-state*.json
+**/cookies*.json
+**/auth*.json
+**/*.pem
+**/*.key
+**/*.pfx
